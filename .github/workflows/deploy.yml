@@ -22,9 +22,13 @@ jobs:
         service_account_key: ${{ github.workspace }}/gcp-key.json
         export_default_credentials: true
 
+    - name: Set GCP Project
+      run: gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+
     - name: Build and Push Docker Image
       run: |
         gcloud builds submit \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
           --tag asia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/fastapi-repo/iris-predict
 
     - name: Deploy to Cloud Run
