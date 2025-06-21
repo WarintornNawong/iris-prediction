@@ -1,0 +1,36 @@
+name: Deploy ONNX to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Decode base64 GCP service account key
+      run: echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > "${{ github.workspace }}/gcp-key.json"
+
+    - name: Set up gcloud
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ github.workspace }}/gcp-key.json
+        export_default_credentials: true
+
+    - name: Build and Push Docker Image
+      run: |
+        gcloud builds submit \
+          --tag asia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/fastapi-repo/iris-predict
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy iris-predict \
+          --image asia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/fastapi-repo/iris-predict \
+          --region asia-southeast1 \
+          --platform managed \
+          --allow-unauthenticated
